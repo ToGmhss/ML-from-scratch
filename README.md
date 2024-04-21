@@ -5,7 +5,8 @@ Practice coding classical ML algorithms
 Hi, this is a repo with part of the algorithms I have experience with. For the coding from scratch, please refer to the section "code-from-scratch". Other part are my interested area of AI&ML.
 
 # References
-For recommendation algorithms, some useful recourses are listed below:
+Some useful recourses are listed below:
+[AutoGluon](https://auto.gluon.ai/stable/index.html)
 
 [Recommenders Team GitHub](https://github.com/recommenders-team/recommenders)
 
