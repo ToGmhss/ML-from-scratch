@@ -6,9 +6,9 @@ Hi, this is a repo with part of the algorithms I have experience with. For the c
 
 # References
 Some useful recourses are listed below: 
-1. AutoML 
+1. AutoML  
 [AutoGluon](https://auto.gluon.ai/stable/index.html)
 
-2. Recommendation system
-[Recommenders Team GitHub](https://github.com/recommenders-team/recommenders)
+2. Recommendation system   
+[Recommenders GitHub](https://github.com/recommenders-team/recommenders)  
 [Surprise GitHub](https://github.com/NicolasHug/Surprise)
