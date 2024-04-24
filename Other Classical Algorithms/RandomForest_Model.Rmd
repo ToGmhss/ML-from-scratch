@@ -1,0 +1,209 @@
+---
+title: "RF for imbalanced data"
+author: "Tommy"
+date: "12/14/2020"
+output: html_document
+---
+
+```{r}
+library(caret)
+train_data <- read.csv("./drp_train.csv")
+train.idx=createDataPartition(train_data$Revenue, p=0.8, 
+                              list = FALSE,
+                              times=1)
+train_data=train_data[train.idx,]
+test_data=train_data[-train.idx,]
+test.data.rf  <- read.csv("./drp_test.csv")
+
+for (i in 1:dim(train_data)[1]){
+  if (train_data$Revenue[i] == TRUE){
+    train_data$Revenue[i] = "T"
+  } else {
+    train_data$Revenue[i] = "F"
+  }
+}
+for (i in 1:dim(test_data)[1]){
+  if (test_data$Revenue[i] == TRUE){
+    test_data$Revenue[i] = "T"
+  } else {
+    test_data$Revenue[i] = "F"
+  }
+}
+```
+
+```{r}
+set.seed(42)
+model_rf <- caret::train(Revenue ~ .,
+                         data = train_data,
+                         method = "rf",
+                         preProcess = c("scale", "center"),
+                         trControl = trainControl(method="cv",number=5))
+```
+
+Original
+```{r}
+final <- data.frame(actual = test_data$Revenue,
+                    predict(model_rf, newdata = test_data, type = "prob"))
+final
+final$predict <- ifelse(final$T > 0.5, "T", "F")
+final$predict=as.factor(final$predict)
+test_data$Revenue=as.factor(test_data$Revenue)
+cm_original <- confusionMatrix(final$predict, test_data$Revenue)
+cm_original
+```
+
+
+
+Under-sampling
+```{r}
+ctrl <- trainControl(method = "cv", 
+                     number = 5,
+                     sampling = "down")
+set.seed(42)
+model_rf_under <- caret::train(Revenue ~ .,
+                         data = train_data,
+                         method = "rf",
+                         preProcess = c("scale", "center"),
+                         trControl = ctrl)
+final_under <- data.frame(actual = test_data$Revenue,
+                    predict(model_rf_under, newdata = test_data, type = "prob"))
+final_under$predict <- ifelse(final_under$T > 0.5, "T", "F")
+final_under$predict=as.factor(final_under$predict)
+cm_under <- confusionMatrix(final_under$predict, test_data$Revenue)
+cm_under
+```
+
+
+Over-sampling
+```{r}
+ctrl <- trainControl(method = "cv", 
+                     number = 5, 
+                     sampling = "up")
+set.seed(42)
+model_rf_over <- caret::train(Revenue ~ .,
+                         data = train_data,
+                         method = "rf",
+                         preProcess = c("scale", "center"),
+                         trControl = ctrl)
+final_over <- data.frame(actual = test_data$Revenue,
+                          predict(model_rf_over, newdata = test_data, type = "prob"))
+#final_over$T
+```
+
+```{r}
+final_over$predict <- ifelse(final_over$T > 0.5, "T", "F")
+final_over$predict=as.character(final_over$predict)
+# typeof(final_over$predict[1])
+# typeof(test_data$Revenue[1])
+# length(final_over$predict)
+# length(test_data$Revenue)
+# final_over$predict[1:10]
+# test_data$Revenue[1:10]
+final_over$predict=as.factor(final_over$predict)
+cm_over <- confusionMatrix(final_over$predict, test_data$Revenue)
+cm_over
+
+```
+
+```{r}
+
+```
+
+Rose
+```{r}
+ctrl <- trainControl(method = "cv", 
+                     number = 5,
+                     sampling = "rose")
+set.seed(42)
+model_rf_rose <- caret::train(Revenue ~ .,
+                              data = train_data,
+                              method = "rf",
+                              preProcess = c("scale", "center"),
+                              trControl = ctrl)
+final_rose <- data.frame(actual = test_data$Revenue,
+                         predict(model_rf_rose, newdata = test_data, type = "prob"))
+final_rose$predict <- ifelse(final_rose$T > 0.5, "T", "F")
+final_rose$predict=as.factor(final_rose$predict)
+cm_rose <- confusionMatrix(final_rose$predict, test_data$Revenue)
+cm_rose
+```
+
+
+smote
+```{r}
+ctrl <- trainControl(method = "cv", 
+                     number = 5,
+                     sampling = "smote")
+set.seed(42)
+model_rf_smote <- caret::train(Revenue ~ .,
+                              data = train_data,
+                              method = "rf",
+                              preProcess = c("scale", "center"),
+                              trControl = ctrl)
+final_smote <- data.frame(actual = test_data$Revenue,
+                         predict(model_rf_smote, newdata = test_data, type = "prob"))
+final_smote$predict <- ifelse(final_smote$T > 0.5, "T", "F")
+final_smote$predict=as.factor(final_smote$predict)
+cm_smote <- confusionMatrix(final_smote$predict, test_data$Revenue)
+cm_smote
+```
+
+prediction
+```{r}
+models <- list(original = model_rf,
+                       under = model_rf_under,
+                       over = model_rf_over,
+                       smote = model_rf_smote,
+                       rose = model_rf_rose)
+resampling <- resamples(models)
+bwplot(resampling)
+```
+
+
+
+```{r}
+final <- data.frame(actual = test.data.rf$Revenue,
+                          predict(model_rf_under, newdata = test.data.rf, type = "prob"))
+final$predict <- ifelse(final$T > 0.5, "T", "F")
+#length(final$predict)
+tt=0
+ff=0
+tf=0
+ft=0
+for (i in 1:length(final$predict)){
+  if (final$predict[i]=="T"){
+    if (test.data.rf$Revenue[i]=="T"){
+      tt=tt+1
+    } else{
+      ft=ft+1
+    }
+  } else{
+    if (test.data.rf$Revenue[i]=="T"){
+      tf=tf+1
+    } else{
+      ff=ff+1
+    }
+  }
+}
+# print(tt)
+# print(tf)
+# print(ft)
+# print(ff)
+print(paste("The accuracy rate is", (tt+ff)/(tt+tf+ff+ft)))
+print(paste("The false negative rate is", (tf)/(tt+tf)))
+print(paste("The false positive rate is", (ft)/(ft+ff)))
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
