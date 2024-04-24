@@ -1,0 +1,107 @@
+---
+title: "SVM_Model"
+author: | 
+  | Tommy
+date: "2020/12/14"
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(e1071)
+encoded.data = read.csv("enc_dat.csv")[,-1]
+data = data.frame(x=encoded.data[,-13],y=as.factor(encoded.data$Revenue))
+```
+
+```{R}
+set.seed(1)
+tune.out=tune(svm, y~., data = data, kernel="linear",scale=TRUE, ranges = list(cost=c(0.1,1,5)))
+summary(tune.out)
+bestmod = tune.out$best.model
+summary(bestmod)
+```
+
+```{r}
+set.seed (1)
+tune.out.r=tune(svm, y~., data=data, kernel ="radial",scale=TRUE,ranges=list(cost=c(0.1,1,5),gamma=c(0.5,1,2) ))
+summary(tune.out.r)
+bestmod.r = tune.out.r$best.model
+summary(bestmod.r)
+```
+
+```{r}
+set.seed (1)
+tune.out.p=tune(svm, y~., data=data, kernel ="poly",scale=TRUE, ranges =list(cost=c(0.1,1,5),degree=c(1,2,3) ))
+summary(tune.out.p)
+bestmod.p = tune.out.p$best.model
+summary(bestmod.p)
+```
+
+```{r}
+library(caret)
+set.seed(1)
+train.idx=createDataPartition(data$y, p=0.8, list = FALSE)
+data.train=data[train.idx,]
+data.test = data[-train.idx,]
+# Perform validation set approach on best svm with linear kernel
+svm = svm(y~.,data = data.train,kernel="linear",cost=1,scale=TRUE)
+pred = predict(svm,data.test)
+table(pred,data.test$y)
+# Perform validation set approach on best svm with radial kernel
+svm.r = svm(y~.,data = data.train,kernel="radial",cost=1, gamma=0.5,scale=TRUE)
+pred.r = predict(svm.r,data.test)
+table(pred.r,data.test$y)
+# Perform validation set approach on best svm with polynomial kernel
+svm.p = svm(y~.,data=data.train,kernel="poly",cost=1,degree=1,scale=TRUE)
+pred.p = predict(svm.p,data.test)
+table(pred.p,data.test$y)
+# Get the table
+model = c("linear(cost=1)","radial(cost=1,gamma=0.5)","poly(cost=1,degree=1)")
+error = c(0.1146,0.1268,0.1146)
+FP_rate = c(0.0252,0.0252,0.0252)
+FN_rate = c(0.6033,0.6820,0.6033)
+table= data.frame(Models=model,Overall_Erros=error,False_Positive=FP_rate,False_Negative=FN_rate)
+library(caret)
+knitr::kable(table)
+```
+
+```{r}
+library (ROCR)
+rocplot =function (pred , truth, ...){
+  predob = prediction (pred , truth )
+  perf<-ROCR::performance(predob,"tpr","fpr")
+  plot(perf, ...)
+}
+
+svmfit.opt=svm(y~., data=data[train.idx,], kernel ="radial",gamma =0.5, cost=1, decision.values = F)
+fitted =attributes (predict (svmfit.opt ,data[train.idx,],decision.values =TRUE))$decision.values
+
+par(mfrow=c(1,2))
+rocplot(fitted, data[train.idx,"y"], main=" Training Data")
+svmfit.flex=svm (y~., data=data[train.idx,], kernel ="radial",gamma =50, cost=1, decision.values=F)
+fitted =attributes (predict (svmfit.flex, data[train.idx, ],decision.values =T))$decision.values
+rocplot(fitted,data[train.idx,"y"], add = T, col = 'red')
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
